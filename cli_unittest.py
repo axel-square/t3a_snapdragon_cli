@@ -18,7 +18,11 @@ class TestCameraSnapdragonCLI(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn("OK", result.output)
 
-        result = runner.invoke(cli, ["--flash", filename])
+        result = runner.invoke(cli, ["--flash"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("OK", result.output)
+
+        result = runner.invoke(cli, ["--autofocus"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn("OK", result.output)
 

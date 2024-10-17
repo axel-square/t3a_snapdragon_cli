@@ -42,6 +42,10 @@ FLASH_METADATA_AUTO_FIRED_RED_EYE = 0x59
 FLASH_METADATA_AUTO_FIRED_RED_EYE_NO_RETURN = 0x5D
 FLASH_METADATA_AUTO_FIRED_RED_EYE_RETURN = 0x5F
 
+EXPOSURE_MODE_METADATA_AUTO = 0x0
+EXPOSURE_MODE_METADATA_MANUAL = 0x1
+EXPOSURE_MODE_METADATA_AUTO_BRACKET = 0x2
+
 
 def run_command(command):
     print(f"Running command: {command}")
@@ -63,7 +67,7 @@ def send_intent(intent):
     run_command(f"adb shell am start -a {intent}")
 
 
-def check_for_recent_picture(filename, flash=False):
+def check_for_recent_picture(filename, flash, autofocus):
     image_path = f"{PICTURES_PATH}/{filename}.jpg"
 
     # Find the picture and check its date
@@ -133,6 +137,14 @@ def check_for_recent_picture(filename, flash=False):
             print("Flash wrongly enabled in picture metadata: " + str(exif_flash))
             return False
 
+    if autofocus:
+        if "ExposureMode" not in exif_data:
+            print("Missing ExposureMode in picture metadata")
+            return
+        if exif_data["ExposureMode"] != EXPOSURE_MODE_METADATA_AUTO:
+            print("ExposureMode isn't set to auto in picture metadata")
+            return False
+
     return True
 
 
@@ -164,7 +176,8 @@ def get_image_metadata(image_path):
 @click.command()
 @click.option("--filename", default=None, help="Filename to save the picture as.")
 @click.option("--flash", is_flag=True, help="Enable flash mode.")
-def cli(filename, flash):
+@click.option("--autofocus", is_flag=True, help="Enable autofocus mode.")
+def cli(filename, flash, autofocus):
     package_name = "org.codeaurora.snapcam"
     intent = "android.media.action.IMAGE_CAPTURE_NOW"
 
@@ -176,6 +189,9 @@ def cli(filename, flash):
 
     if flash:
         intent += " --es flash_mode on"
+
+    if autofocus:
+        intent += " --es autofocus on"
 
     # Kill the app before sending the intent
     kill_app(package_name)
@@ -190,7 +206,7 @@ def cli(filename, flash):
     kill_app(package_name)
 
     # Check for a recent picture
-    if check_for_recent_picture(filename, flash):
+    if check_for_recent_picture(filename, flash, autofocus):
         print("OK")
     else:
         print("FAILED")
