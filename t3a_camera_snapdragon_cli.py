@@ -67,7 +67,9 @@ def send_intent(intent):
     run_command(f"adb shell am start -a {intent}")
 
 
-def check_for_recent_picture(filename, flash, autofocus):
+def check_for_recent_picture(
+    filename, flash, _autofocus  # Can't seem to be an EXIF tag for autofocus
+):
     image_path = f"{PICTURES_PATH}/{filename}.jpg"
 
     # Find the picture and check its date
@@ -135,14 +137,6 @@ def check_for_recent_picture(filename, flash, autofocus):
             FLASH_METADATA_AUTO_DID_NOT_FIRE_RED_EYE,
         ]:
             print("Flash wrongly enabled in picture metadata: " + str(exif_flash))
-            return False
-
-    if autofocus:
-        if "ExposureMode" not in exif_data:
-            print("Missing ExposureMode in picture metadata")
-            return
-        if exif_data["ExposureMode"] != EXPOSURE_MODE_METADATA_AUTO:
-            print("ExposureMode isn't set to auto in picture metadata")
             return False
 
     return True
