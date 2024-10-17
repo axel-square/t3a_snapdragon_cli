@@ -8,6 +8,11 @@ import click
 import PIL
 
 
+PICTURES_PATH = "/storage/emulated/0/DCIM/Camera"
+MAX_PICTURE_AGE_MINUTES = 1
+PICTURE_CAPTURE_DELAY_SECONDS = 5
+
+
 def run_command(command):
     print(f"Running command: {command}")
     result = subprocess.run(
@@ -24,10 +29,10 @@ def send_intent(intent):
     run_command(f"adb shell am start -a {intent}")
 
 
-def check_for_recent_picture(directory, filename=None, time_limit_minutes=1):
-    def ls_line_is_recent_enough(line, time_limit_minutes):
+def check_for_recent_picture(filename=None):
+    def ls_line_is_recent_enough(line):
         current_time = datetime.now()
-        time_limit = current_time - timedelta(minutes=time_limit_minutes)
+        time_limit = current_time - timedelta(minutes=MAX_PICTURE_AGE_MINUTES)
         parts = line.split()
         if len(parts) < 8:
             return False
@@ -40,7 +45,7 @@ def check_for_recent_picture(directory, filename=None, time_limit_minutes=1):
             print(f"Error parsing timestamp: {timestamp_str}")
         return False
 
-    command = f"adb shell ls -l {directory}"
+    command = f"adb shell ls -l {PICTURES_PATH}"
     if filename:
         command += f"/{filename}.jpg"
     stdout, stderr = run_command(command)
@@ -49,13 +54,13 @@ def check_for_recent_picture(directory, filename=None, time_limit_minutes=1):
         return False
 
     if filename:
-        return ls_line_is_recent_enough(stdout, time_limit_minutes)
+        return ls_line_is_recent_enough(stdout)
     else:
         for line in stdout.splitlines():
             parts = line.split()
             if len(parts) < 8:
                 continue
-            if ls_line_is_recent_enough(line, time_limit_minutes):
+            if ls_line_is_recent_enough(line):
                 return True
 
     return False
@@ -84,7 +89,6 @@ def get_image_metadata(image_path):
 def cli(filename):
     package_name = "org.codeaurora.snapcam"
     intent = "android.media.action.IMAGE_CAPTURE_NOW"
-    directory = "/storage/emulated/0/DCIM/Camera"
 
     if filename:
         intent += f" --es filename {filename}"
@@ -96,13 +100,13 @@ def cli(filename):
     send_intent(intent)
 
     # Wait for a few seconds to allow the picture to be taken
-    time.sleep(5)
+    time.sleep(PICTURE_CAPTURE_DELAY_SECONDS)
 
     # Kill the app after sending the intent
     kill_app(package_name)
 
     # Check for a recent picture
-    if check_for_recent_picture(directory, filename=filename, time_limit_minutes=1):
+    if check_for_recent_picture(filename):
         print("OK")
     else:
         print("FAILED")

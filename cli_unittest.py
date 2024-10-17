@@ -3,9 +3,7 @@
 from click.testing import CliRunner
 import unittest
 from unittest.mock import patch, MagicMock
-from t3a_camera_snapdragon_cli import (
-    cli,
-)
+from t3a_camera_snapdragon_cli import cli
 
 
 class TestCameraSnapdragonCLI(unittest.TestCase):
@@ -15,7 +13,8 @@ class TestCameraSnapdragonCLI(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn("OK", result.output)
 
-        result = runner.invoke(cli, ["--filename", "test"])
+        filename = "test"
+        result = runner.invoke(cli, ["--filename", filename])
         self.assertEqual(result.exit_code, 0)
         self.assertIn("OK", result.output)
 
