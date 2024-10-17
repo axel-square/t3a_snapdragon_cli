@@ -3,6 +3,7 @@
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 import os
+import click
 
 
 def get_image_metadata(image_path):
@@ -43,6 +44,11 @@ def get_image_metadata(image_path):
         print(f"Error: {e}")
 
 
-if __name__ == "__main__":
-    image_path = input("Enter the path to the image: ")
+@click.command()
+@click.argument("image_path")
+def main(image_path):
     get_image_metadata(image_path)
+
+
+if __name__ == "__main__":
+    main()
