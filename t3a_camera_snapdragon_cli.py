@@ -158,7 +158,6 @@ def get_image_metadata(image_path):
                 tag = ExifTags.TAGS.get(tag_id, tag_id)
                 exif_dict[tag] = value
 
-            print("Image metadata: " + str(exif_dict))
             return exif_dict
 
 
@@ -176,7 +175,7 @@ def cli(filename, flash):
     intent += f" --es filename {filename}"
 
     if flash:
-        intent += " --es flash-mode on"
+        intent += " --es flash_mode on"
 
     # Kill the app before sending the intent
     kill_app(package_name)
