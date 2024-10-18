@@ -10,7 +10,7 @@ from PIL import Image, ExifTags
 
 
 PICTURES_PATH = "/storage/emulated/0/DCIM/Camera"
-MAX_PICTURE_AGE_MINUTES = 1
+MAX_PICTURE_AGE_MINUTES = 2
 PICTURE_CAPTURE_DELAY_SECONDS = 5
 
 # From https://exiftool.org/TagNames/EXIF.html#Flash
@@ -42,6 +42,8 @@ FLASH_METADATA_AUTO_FIRED_RED_EYE = 0x59
 FLASH_METADATA_AUTO_FIRED_RED_EYE_NO_RETURN = 0x5D
 FLASH_METADATA_AUTO_FIRED_RED_EYE_RETURN = 0x5F
 
+VALID_ISO = ["auto", "100", "200", "400", "800", "1600", "3200"]
+
 EXPOSURE_MODE_METADATA_AUTO = 0x0
 EXPOSURE_MODE_METADATA_MANUAL = 0x1
 EXPOSURE_MODE_METADATA_AUTO_BRACKET = 0x2
@@ -68,7 +70,7 @@ def send_intent(intent):
 
 
 def check_for_recent_picture(
-    filename, flash, _autofocus  # Can't seem to be an EXIF tag for autofocus
+    filename, flash, _autofocus, iso  # Can't seem to be an EXIF tag for autofocus
 ):
     image_path = f"{PICTURES_PATH}/{filename}.jpg"
 
@@ -97,6 +99,8 @@ def check_for_recent_picture(
     if not exif_data:
         print("Error getting image metadata")
         return False
+
+    print("EXIF Data:" + str(exif_data))
 
     # Check correct flash info
     exif_flash = exif_data.get("Flash")
@@ -139,6 +143,17 @@ def check_for_recent_picture(
             print("Flash wrongly enabled in picture metadata: " + str(exif_flash))
             return False
 
+    # Check the correct ISO value
+    if iso:
+        exif_iso = exif_data.get("ISOSpeedRatings")
+        if exif_iso is None:
+            print("ISO value not found in metadata")
+            return False
+        exif_iso = int(exif_iso)
+        if exif_iso != iso:
+            print(f"ISO value is incorrect: {exif_iso} instead of {iso}")
+            return False
+
     return True
 
 
@@ -171,14 +186,14 @@ def get_image_metadata(image_path):
 @click.option("--filename", default=None, help="Filename to save the picture as.")
 @click.option("--flash", is_flag=True, help="Enable flash mode.")
 @click.option("--autofocus", is_flag=True, help="Enable autofocus mode.")
-def cli(filename, flash, autofocus):
+@click.option("--iso", type=click.IntRange(min=0), help="ISO value.")
+def cli(filename, flash, autofocus, iso):
     package_name = "org.codeaurora.snapcam"
     intent = "android.media.action.IMAGE_CAPTURE_NOW"
 
     if not filename:
         now = datetime.now()
         filename = now.strftime("%Y%m%d_%H%M%S")
-
     intent += f" --es filename {filename}"
 
     if flash:
@@ -186,6 +201,9 @@ def cli(filename, flash, autofocus):
 
     if autofocus:
         intent += " --es autofocus on"
+
+    if iso:
+        intent += f" --es iso {iso}"
 
     # Kill the app before sending the intent
     kill_app(package_name)
@@ -200,7 +218,7 @@ def cli(filename, flash, autofocus):
     kill_app(package_name)
 
     # Check for a recent picture
-    if check_for_recent_picture(filename, flash, autofocus):
+    if check_for_recent_picture(filename, flash, autofocus, iso):
         print("OK")
     else:
         print("FAILED")

@@ -9,6 +9,7 @@ from t3a_camera_snapdragon_cli import cli
 class TestCameraSnapdragonCLI(unittest.TestCase):
     def test_cli(self):
         runner = CliRunner()
+
         result = runner.invoke(cli)
         self.assertEqual(result.exit_code, 0)
         self.assertIn("OK", result.output)
@@ -23,6 +24,10 @@ class TestCameraSnapdragonCLI(unittest.TestCase):
         self.assertIn("OK", result.output)
 
         result = runner.invoke(cli, ["--autofocus"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("OK", result.output)
+
+        result = runner.invoke(cli, ["--iso", "400"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn("OK", result.output)
 
