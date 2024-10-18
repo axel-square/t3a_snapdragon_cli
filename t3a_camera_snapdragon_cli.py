@@ -117,9 +117,9 @@ def send_intent(intent):
 def check_for_recent_picture(
     filename,
     flash,
-    _autofocus,  # Can't seem to be an EXIF tag for autofocus
+    # autofocus,  # Can't seem to be an EXIF tag for autofocus
     iso,
-    exposure_time_ns,  # TODO: broken
+    # exposure_time_ns,  # TODO: broken
     resolution,
 ):
     image_path = f"{PICTURES_PATH}/{filename}.jpg"
@@ -263,15 +263,22 @@ def get_image_metadata(image_path):
 @click.option("--flash", is_flag=True, help="Enable flash mode.")
 @click.option("--autofocus", is_flag=True, help="Enable autofocus mode.")
 @click.option("--iso", type=click.Choice(VALID_ISO), help="ISO value.")
-@click.option(
-    "--exposure_time", type=int, help="Exposure time in nanoseconds. (WIP: broken)"
-)
+# @click.option(
+#     "--exposure_time", type=int, help="Exposure time in nanoseconds. (WIP: broken)"
+# )
 @click.option(
     "--resolution",
     type=click.Choice(VALID_RESOLUTIONS),
     help="Resolution in the format 'widthxheight'.",
 )
-def cli(filename, flash, autofocus, iso, exposure_time, resolution):
+def cli(
+    filename,
+    flash,
+    autofocus,
+    iso,
+    # exposure_time,
+    resolution,
+):
     package_name = "org.codeaurora.snapcam"
     intent = "android.media.action.IMAGE_CAPTURE_NOW"
 
@@ -289,8 +296,8 @@ def cli(filename, flash, autofocus, iso, exposure_time, resolution):
     if iso:
         intent += f" --es iso {iso}"
 
-    if exposure_time:
-        intent += f" --es exposure {exposure_time}"
+    # if exposure_time:
+    #     intent += f" --es exposure {exposure_time}"
 
     if resolution:
         intent += f" --es resolution {resolution}"
@@ -309,7 +316,12 @@ def cli(filename, flash, autofocus, iso, exposure_time, resolution):
 
     # Check for a recent picture
     if check_for_recent_picture(
-        filename, flash, autofocus, iso, exposure_time, resolution
+        filename,
+        flash,
+        # autofocus,
+        iso,
+        # exposure_time,
+        resolution,
     ):
         print("OK")
     else:
