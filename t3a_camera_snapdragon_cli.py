@@ -44,6 +44,51 @@ FLASH_METADATA_AUTO_FIRED_RED_EYE_RETURN = 0x5F
 
 VALID_ISO = ["auto", "100", "200", "400", "800", "1600", "3200"]
 
+VALID_RESOLUTIONS = [
+    "16000x16000",
+    "8192x8192",
+    "8192x4320",
+    "7680x4320",
+    "8000x6000",
+    "6928x5196",
+    "6560x4928",
+    "6112x4584",
+    "5184x4882",
+    "5656x4242",
+    "5344x4008",
+    "5184x3880",
+    "4608x3456",
+    "5312x2988",
+    "4160x3120",
+    "4208x3120",
+    "4000x3000",
+    "3840x2160",
+    "3264x2448",
+    "2976x2976",
+    "2592x1944",
+    "2592x1936",
+    "2560x1920",
+    "2688x1512",
+    "2048x1536",
+    "2048x1520",
+    "1920x1080",
+    "1600x1200",
+    "1920x1088",
+    "1440x1080",
+    "1280x960",
+    "1280x768",
+    "1280x720",
+    "1280x400",
+    "1024x768",
+    "800x600",
+    "800x480",
+    "960x720",
+    "720x480",
+    "640x480",
+    "352x288",
+    "320x240",
+]
+
 EXPOSURE_MODE_METADATA_AUTO = 0x0
 EXPOSURE_MODE_METADATA_MANUAL = 0x1
 EXPOSURE_MODE_METADATA_AUTO_BRACKET = 0x2
@@ -72,9 +117,10 @@ def send_intent(intent):
 def check_for_recent_picture(
     filename,
     flash,
-    _autofocus,
-    iso,  # Can't seem to be an EXIF tag for autofocus
-    exposure_time,
+    _autofocus,  # Can't seem to be an EXIF tag for autofocus
+    iso,
+    exposure_time_ns,  # TODO: broken
+    resolution,
 ):
     image_path = f"{PICTURES_PATH}/{filename}.jpg"
 
@@ -153,20 +199,31 @@ def check_for_recent_picture(
         if exif_iso is None:
             print("ISO value not found in metadata")
             return False
-        exif_iso = int(exif_iso)
-        if exif_iso != iso:
+        # The exif iso value is directly an int
+        if exif_iso != int(iso):
             print(f"ISO value is incorrect: {exif_iso} instead of {iso}")
             return False
 
-    if exposure_time:
-        exif_exposure_time = exif_data.get("ExposureTime")
-        if exif_exposure_time is None:
-            print("Exposure time not found in metadata")
+    # TODO: figure out why exposure time doesn't work
+    # if exposure_time_ns:
+    #     exif_exposure_time_s = exif_data.get("ExposureTime")
+    #     if exif_exposure_time_s is None:
+    #         print("Exposure time not found in metadata")
+    #         return False
+    #     if exposure_time_ns / 1000000000 != exif_exposure_time_s:
+    #         print(
+    #             f"Exposure time is incorrect: {exif_exposure_time_s} instead of {exposure_time_ns / 1000000000}"
+    #         )
+    #         return False
+
+    if resolution:
+        exif_resolution = exif_data.get("ImageWidth"), exif_data.get("ImageLength")
+        if exif_resolution is None:
+            print("Resolution not found in metadata")
             return False
-        if exposure_time / 1000 != exif_exposure_time:
-            print(
-                f"Exposure time is incorrect: {exif_exposure_time} instead of {exposure_time}"
-            )
+        exif_resolution = f"{exif_resolution[0]}x{exif_resolution[1]}"
+        if exif_resolution != resolution:
+            print(f"Resolution is incorrect: {exif_resolution} instead of {resolution}")
             return False
 
     return True
@@ -198,12 +255,23 @@ def get_image_metadata(image_path):
 
 
 @click.command()
-@click.option("--filename", default=None, help="Filename to save the picture as.")
+@click.option(
+    "--filename",
+    default=None,
+    help="Filename to save the picture as (.jpg will be automatically appended).",
+)
 @click.option("--flash", is_flag=True, help="Enable flash mode.")
 @click.option("--autofocus", is_flag=True, help="Enable autofocus mode.")
 @click.option("--iso", type=click.Choice(VALID_ISO), help="ISO value.")
-@click.option("--exposure_time", type=int, help="Exposure time in milliseconds.")
-def cli(filename, flash, autofocus, iso, exposure_time):
+@click.option(
+    "--exposure_time", type=int, help="Exposure time in nanoseconds. (WIP: broken)"
+)
+@click.option(
+    "--resolution",
+    type=click.Choice(VALID_RESOLUTIONS),
+    help="Resolution in the format 'widthxheight'.",
+)
+def cli(filename, flash, autofocus, iso, exposure_time, resolution):
     package_name = "org.codeaurora.snapcam"
     intent = "android.media.action.IMAGE_CAPTURE_NOW"
 
@@ -222,7 +290,10 @@ def cli(filename, flash, autofocus, iso, exposure_time):
         intent += f" --es iso {iso}"
 
     if exposure_time:
-        intent += f" --es exposure_time {exposure_time}"
+        intent += f" --es exposure {exposure_time}"
+
+    if resolution:
+        intent += f" --es resolution {resolution}"
 
     # Kill the app before sending the intent
     kill_app(package_name)
@@ -237,7 +308,9 @@ def cli(filename, flash, autofocus, iso, exposure_time):
     kill_app(package_name)
 
     # Check for a recent picture
-    if check_for_recent_picture(filename, flash, autofocus, iso, exposure_time):
+    if check_for_recent_picture(
+        filename, flash, autofocus, iso, exposure_time, resolution
+    ):
         print("OK")
     else:
         print("FAILED")

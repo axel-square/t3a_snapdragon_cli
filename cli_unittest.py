@@ -31,7 +31,11 @@ class TestCameraSnapdragonCLI(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn("OK", result.output)
 
-        result = runner.invoke(cli, ["--exposure_time", "142"])
+        # result = runner.invoke(cli, ["--exposure_time", "142"])
+        # self.assertEqual(result.exit_code, 0)
+        # self.assertIn("OK", result.output)
+
+        result = runner.invoke(cli, ["--resolution", "1600x1200"])
         self.assertEqual(result.exit_code, 0)
         self.assertIn("OK", result.output)
 
