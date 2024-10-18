@@ -31,6 +31,10 @@ class TestCameraSnapdragonCLI(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         self.assertIn("OK", result.output)
 
+        result = runner.invoke(cli, ["--exposure_time", "142"])
+        self.assertEqual(result.exit_code, 0)
+        self.assertIn("OK", result.output)
+
 
 if __name__ == "__main__":
     unittest.main()

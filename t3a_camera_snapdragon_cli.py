@@ -70,7 +70,11 @@ def send_intent(intent):
 
 
 def check_for_recent_picture(
-    filename, flash, _autofocus, iso  # Can't seem to be an EXIF tag for autofocus
+    filename,
+    flash,
+    _autofocus,
+    iso,  # Can't seem to be an EXIF tag for autofocus
+    exposure_time,
 ):
     image_path = f"{PICTURES_PATH}/{filename}.jpg"
 
@@ -154,6 +158,17 @@ def check_for_recent_picture(
             print(f"ISO value is incorrect: {exif_iso} instead of {iso}")
             return False
 
+    if exposure_time:
+        exif_exposure_time = exif_data.get("ExposureTime")
+        if exif_exposure_time is None:
+            print("Exposure time not found in metadata")
+            return False
+        if exposure_time / 1000 != exif_exposure_time:
+            print(
+                f"Exposure time is incorrect: {exif_exposure_time} instead of {exposure_time}"
+            )
+            return False
+
     return True
 
 
@@ -186,8 +201,9 @@ def get_image_metadata(image_path):
 @click.option("--filename", default=None, help="Filename to save the picture as.")
 @click.option("--flash", is_flag=True, help="Enable flash mode.")
 @click.option("--autofocus", is_flag=True, help="Enable autofocus mode.")
-@click.option("--iso", type=click.IntRange(min=0), help="ISO value.")
-def cli(filename, flash, autofocus, iso):
+@click.option("--iso", type=click.Choice(VALID_ISO), help="ISO value.")
+@click.option("--exposure_time", type=int, help="Exposure time in milliseconds.")
+def cli(filename, flash, autofocus, iso, exposure_time):
     package_name = "org.codeaurora.snapcam"
     intent = "android.media.action.IMAGE_CAPTURE_NOW"
 
@@ -205,6 +221,9 @@ def cli(filename, flash, autofocus, iso):
     if iso:
         intent += f" --es iso {iso}"
 
+    if exposure_time:
+        intent += f" --es exposure_time {exposure_time}"
+
     # Kill the app before sending the intent
     kill_app(package_name)
 
@@ -218,7 +237,7 @@ def cli(filename, flash, autofocus, iso):
     kill_app(package_name)
 
     # Check for a recent picture
-    if check_for_recent_picture(filename, flash, autofocus, iso):
+    if check_for_recent_picture(filename, flash, autofocus, iso, exposure_time):
         print("OK")
     else:
         print("FAILED")
