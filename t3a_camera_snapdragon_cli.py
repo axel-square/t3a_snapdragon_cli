@@ -9,9 +9,11 @@ import tempfile
 from PIL import Image, ExifTags
 
 
+PACKAGE_NAME = "com.squareup.squidcameracli"
+INTENT = "android.media.action.IMAGE_CAPTURE_NOW"
 PICTURES_PATH = "/storage/emulated/0/DCIM/Camera"
 MAX_PICTURE_AGE_MINUTES = 2
-PICTURE_CAPTURE_DELAY_SECONDS = 5
+PICTURE_CAPTURE_DELAY_SECONDS = 10
 
 # From https://exiftool.org/TagNames/EXIF.html#Flash
 FLASH_METADATA_NO_FLASH = 0x0
@@ -106,8 +108,8 @@ def run_command(command):
     )
 
 
-def kill_app(package_name):
-    run_command(f"adb shell am force-stop {package_name}")
+def kill_app():
+    run_command(f"adb shell am force-stop {PACKAGE_NAME}")
 
 
 def send_intent(intent):
@@ -122,7 +124,7 @@ def check_for_recent_picture(
     # exposure_time_ns,  # TODO: broken
     resolution,
 ):
-    image_path = f"{PICTURES_PATH}/{filename}.jpg"
+    image_path = f"{PICTURES_PATH}/{filename}"
 
     # Find the picture and check its date
     command = f"adb shell ls -l {image_path}"
@@ -258,7 +260,7 @@ def get_image_metadata(image_path):
 @click.option(
     "--filename",
     default=None,
-    help="Filename to save the picture as (.jpg will be automatically appended).",
+    help="Filename to save the picture as.",
 )
 @click.option("--flash", is_flag=True, help="Enable flash mode.")
 @click.option("--autofocus", is_flag=True, help="Enable autofocus mode.")
@@ -279,8 +281,7 @@ def cli(
     # exposure_time,
     resolution,
 ):
-    package_name = "org.codeaurora.snapcam"
-    intent = "android.media.action.IMAGE_CAPTURE_NOW"
+    intent = INTENT
 
     if not filename:
         now = datetime.now()
@@ -303,7 +304,7 @@ def cli(
         intent += f" --es resolution {resolution}"
 
     # Kill the app before sending the intent
-    kill_app(package_name)
+    kill_app()
 
     # Send the intent to start the app and take a picture
     send_intent(intent)
@@ -312,7 +313,7 @@ def cli(
     time.sleep(PICTURE_CAPTURE_DELAY_SECONDS)
 
     # Kill the app after sending the intent
-    kill_app(package_name)
+    kill_app()
 
     # Check for a recent picture
     if check_for_recent_picture(
